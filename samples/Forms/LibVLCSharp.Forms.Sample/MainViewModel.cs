@@ -38,7 +38,7 @@ namespace LibVLCSharp.Forms.Sample
         private void Initialize()
         {
             LibVLC = new LibVLC(enableDebugLogs: true);
-            var media = new Media(new Uri("https://download.blender.org/peach/bigbuckbunny_movies/big_buck_bunny_480p_stereo.avi"));
+            var media = new Media(new Uri("https://download.blender.org/peach/trailer/trailer_480p.mov"));
 
             MediaPlayer = new MediaPlayer(LibVLC)
             {
