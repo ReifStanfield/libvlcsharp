@@ -110,6 +110,10 @@ LibVLC is the actual VLC engine written mostly in C/C++ and compiled for your ta
 dotnet add package VideoLAN.LibVLC.[Windows|UWP|Android|iOS|Mac|tvOS]
 ```
 
+`VideoLAN.LibVLC.Mac` ships both x86_64 and ARM64 (Apple Silicon) builds. The one that gets copied
+follows the `RuntimeIdentifier` you build for, falling back to the SDK host, so a plain
+`dotnet build` on an Apple Silicon Mac gives you a native ARM64 libvlc.
+
 2. Install **LibVLCSharp** _or_ **LibVLCSharp.Forms** (if you plan on using Xamarin.Forms)
 
 LibVLCSharp is the .NET wrapper that consumes `LibVLC` and allows you to interact with native code from C#/F#.

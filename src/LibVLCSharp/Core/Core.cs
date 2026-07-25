@@ -27,6 +27,9 @@ namespace LibVLCSharp
 
             [DllImport(Constants.LibSystem, EntryPoint = "dlopen")]
             internal static extern IntPtr Dlopen(string libraryPath, int mode = 1);
+
+            [DllImport(Constants.LibSystem, EntryPoint = "setenv", CharSet = CharSet.Ansi)]
+            internal static extern int Setenv(string name, string value, int overwrite);
         }
 
 #if !UWP10_0 && !NETSTANDARD1_1
@@ -77,7 +80,14 @@ namespace LibVLCSharp
 
             if (PlatformHelper.IsMac)
             {
-                arch = Path.Combine(ArchitectureNames.MacOS64, Constants.Lib);
+#if !NET45 && !NET40 && !NETSTANDARD1_1
+                var macArch = RuntimeInformation.ProcessArchitecture == Architecture.Arm64
+                    ? ArchitectureNames.MacOSArm64
+                    : ArchitectureNames.MacOS64;
+#else
+                var macArch = ArchitectureNames.MacOS64;
+#endif
+                arch = Path.Combine(macArch, Constants.Lib);
             }
 
 #if !NET45 && !NET40 && !NETSTANDARD1_1
@@ -161,6 +171,24 @@ namespace LibVLCSharp
                 }
             }
 
+            // Add osx-x64 folders as fallback for osx-arm64, so that a universal (fat) libvlc
+            // shipped under the legacy x64 folder still gets picked up on Apple Silicon
+            if (arch == Path.Combine(ArchitectureNames.MacOSArm64, Constants.Lib))
+            {
+                var macFallbackArch = Path.Combine(ArchitectureNames.MacOS64, Constants.Lib);
+
+                var fallbackMacDirPath1 = Path.Combine(Path.GetDirectoryName(libvlcAssemblyLocation)!,
+                    Constants.LibrariesRepositoryFolderName, macFallbackArch);
+                paths.Add((LibVLCCorePath(fallbackMacDirPath1), LibVLCPath(fallbackMacDirPath1)));
+
+                if (!string.IsNullOrEmpty(assemblyLocation))
+                {
+                    var fallbackMacDirPath2 = Path.Combine(Path.GetDirectoryName(assemblyLocation)!,
+                        Constants.LibrariesRepositoryFolderName, macFallbackArch);
+                    paths.Add((LibVLCCorePath(fallbackMacDirPath2), LibVLCPath(fallbackMacDirPath2)));
+                }
+            }
+
             if (PlatformHelper.IsMac)
             {
                 var libvlcPath4 = Path.Combine(Path.Combine(Path.GetDirectoryName(libvlcAssemblyLocation)!,
@@ -190,6 +218,8 @@ namespace LibVLCSharp
                 loadResult = LoadNativeLibrary(libvlcPath, out LibvlcHandle);
                 if (!loadResult)
                     Log($"Failed to load required native libraries at {libvlcPath}");
+                else
+                    ConfigurePluginPath(libvlcDirectoryPath!);
                 return;
             }
 
@@ -200,7 +230,10 @@ namespace LibVLCSharp
                 LoadNativeLibrary(libvlccore, out LibvlccoreHandle);
                 var loadResult = LoadNativeLibrary(libvlc, out LibvlcHandle);
                 if (loadResult)
+                {
+                    ConfigurePluginPath(Path.GetDirectoryName(libvlc)!);
                     break;
+                }
             }
 
             if (!LibVLCLoaded)
@@ -214,6 +247,34 @@ namespace LibVLCSharp
                     $"{Environment.NewLine}Search paths include {string.Join("; ", paths.Select(p => $"{p.libvlc},{p.libvlccore}"))}" + 
                     $"{Environment.NewLine}Are you using an unsupported constructor LibVLC option?");
             }
+        }
+
+        /// <summary>
+        /// Point libvlc at the plugins shipped next to the dylib that was just loaded.
+        /// <para/> The macOS builds have their plugin directory baked in at configure time, so they find
+        /// nothing once relocated into an application's output directory. VLC_PLUGIN_PATH overrides it.
+        /// <para/> A VLC_PLUGIN_PATH set by the application is left untouched.
+        /// </summary>
+        /// <param name="libvlcDirectory">The directory the libvlc dylib was loaded from</param>
+        static void ConfigurePluginPath(string libvlcDirectory)
+        {
+            if (!PlatformHelper.IsMac)
+                return;
+
+            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable(Constants.VlcPluginPathEnvVar)))
+                return;
+
+            var pluginPath = Path.Combine(libvlcDirectory, Constants.Vlc, Constants.Plugins);
+            if (!Directory.Exists(pluginPath))
+            {
+                Log($"No plugins directory at {pluginPath}, leaving {Constants.VlcPluginPathEnvVar} alone");
+                return;
+            }
+
+            // .NET keeps its own copy of the environment, so setenv is what libvlc will actually read
+            Native.Setenv(Constants.VlcPluginPathEnvVar, pluginPath, 1);
+            Environment.SetEnvironmentVariable(Constants.VlcPluginPathEnvVar, pluginPath);
+            Log($"Set {Constants.VlcPluginPathEnvVar} to {pluginPath}");
         }
 #endif
         internal static void EnsureLoaded()

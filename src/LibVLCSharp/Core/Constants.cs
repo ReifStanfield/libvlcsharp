@@ -34,6 +34,13 @@ namespace LibVLCSharp
         internal const string MacLibraryExtension = ".dylib";
         internal const string Lib = "lib";
         internal const string LibVLC = "libvlc";
+        internal const string Vlc = "vlc";
+        internal const string Plugins = "plugins";
+
+        /// <summary>
+        /// Tells libvlc where to look for its plugins, overriding the directory baked in at build time
+        /// </summary>
+        internal const string VlcPluginPathEnvVar = "VLC_PLUGIN_PATH";
 #if UNITY_IOS
         internal const string UnityPlugin = "@rpath/VLCUnityPlugin.framework/VLCUnityPlugin";
 #else
@@ -47,6 +54,7 @@ namespace LibVLCSharp
         internal const string Win64 = "win-x64";
         internal const string Win86 = "win-x86";
         internal const string MacOS64 = "osx-x64";
+        internal const string MacOSArm64 = "osx-arm64";
     }
 
     [Flags]
