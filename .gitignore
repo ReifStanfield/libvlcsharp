@@ -7,6 +7,9 @@
 *.userosscache
 *.sln.docstates
 
+# Machine-specific MSBuild overrides, imported by the root Directory.Build.props
+Directory.Build.local.props
+
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 

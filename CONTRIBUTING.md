@@ -149,6 +149,20 @@ desktop side — the Avalonia, GTK, Eto, WinForms, WPF or console samples — yo
 dotnet build -p:IncludeMobileTargetFrameworks=false
 ```
 
+To make that the default on your machine, drop a `Directory.Build.local.props` next to the solution.
+It is gitignored, and the root `Directory.Build.props` imports it when present:
+
+```xml
+<Project>
+  <PropertyGroup>
+    <IncludeMobileTargetFrameworks>false</IncludeMobileTargetFrameworks>
+  </PropertyGroup>
+</Project>
+```
+
+Keep it out of version control. A Release build packs `LibVLCSharp`, and with the mobile frameworks
+disabled the resulting package would quietly be missing its Android, iOS, macOS and tvOS assets.
+
 ### <a name="rules"></a> Coding Rules
 
 To ensure consistency throughout the source code, keep these rules in mind as you are working:

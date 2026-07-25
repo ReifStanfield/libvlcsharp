@@ -1,4 +1,7 @@
 ﻿<Project>
+  <!-- MSBuild stops at the nearest Directory.Build.props, so pull in the repository-wide one -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
   <!-- Redirect to VS2022 for legacy Xamarin TFMs (VS2026+ compatibility) -->
   <PropertyGroup Condition="$([MSBuild]::IsOsPlatform('Windows')) And ($(TargetFramework.Contains('monoandroid')) Or $(TargetFramework.Contains('xamarin')))">
     <VS2022Edition Condition="Exists('C:\Program Files\Microsoft Visual Studio\2022\Enterprise')">Enterprise</VS2022Edition>

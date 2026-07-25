@@ -93,6 +93,13 @@ LibVLC needs to be installed separately, see VideoLAN.LibVLC.* packages.</Descri
       <HintPath>C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\IDE\Extensions\Xamarin.VisualStudio\Xamarin.Mac.dll</HintPath>
     </Reference>
   </ItemGroup>
+  <!-- Packing a desktop-only build produces a package without its Android, iOS, macOS and tvOS
+       assets, which is easy to miss since the build itself succeeds. -->
+  <Target Name="WarnOnDesktopOnlyPackage" BeforeTargets="GenerateNuspec"
+          Condition="'$(IncludeMobileTargetFrameworks)' != 'true'">
+    <Message Importance="high"
+             Text="LibVLCSharp is being packed with IncludeMobileTargetFrameworks=false: the package will not contain the Android, iOS, macOS and tvOS target frameworks." />
+  </Target>
   <Target Name="IncludeAWindow">
     <ItemGroup>
       <BuildOutputInPackage Condition="$(TargetFramework.Contains('monoandroid'))" Include="$(OutputPath)LibVLCSharp.Android.AWindow.dll" />

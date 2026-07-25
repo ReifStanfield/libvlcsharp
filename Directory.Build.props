@@ -1,0 +1,23 @@
+<Project>
+  <!--
+    Repository-wide defaults.
+
+    Machine-specific settings belong in Directory.Build.local.props, which is gitignored and
+    imported here when present. That keeps developer preferences out of the repository, so CI
+    and packaging always build with the committed defaults.
+
+    The one most people want is skipping the mobile target frameworks of LibVLCSharp, which
+    need the android/ios/macos/tvos workloads and add a lot of build time:
+
+      <Project>
+        <PropertyGroup>
+          <IncludeMobileTargetFrameworks>false</IncludeMobileTargetFrameworks>
+        </PropertyGroup>
+      </Project>
+
+    Do not set that in a committed file: a Release build packs LibVLCSharp, and the resulting
+    package would silently be missing its Android, iOS, macOS and tvOS assets.
+  -->
+  <Import Project="$(MSBuildThisFileDirectory)Directory.Build.local.props"
+          Condition="Exists('$(MSBuildThisFileDirectory)Directory.Build.local.props')" />
+</Project>
