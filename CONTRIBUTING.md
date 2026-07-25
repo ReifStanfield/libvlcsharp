@@ -141,6 +141,14 @@ You will need to install GTK if you want to work on LibVLCSharp.GTK.
 
 If you want to get started on Windows with minimal configuration requirements, open `LibVLCSharp.Win32.sln`.
 
+`LibVLCSharp` multi-targets the Android, iOS, macOS and tvOS frameworks, so restoring anything that
+references it needs those workloads (`dotnet workload restore`). If you are only working on the
+desktop side — the Avalonia, GTK, Eto, WinForms, WPF or console samples — you can skip them:
+
+```
+dotnet build -p:IncludeMobileTargetFrameworks=false
+```
+
 ### <a name="rules"></a> Coding Rules
 
 To ensure consistency throughout the source code, keep these rules in mind as you are working:
