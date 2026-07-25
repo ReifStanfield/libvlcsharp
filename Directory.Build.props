@@ -18,6 +18,17 @@
     Do not set that in a committed file: a Release build packs LibVLCSharp, and the resulting
     package would silently be missing its Android, iOS, macOS and tvOS assets.
   -->
+  <PropertyGroup>
+    <!--
+      Version of VideoLAN.LibVLC.Mac the samples build against. The macOS nightly package is
+      stamped with the day it was built (4.0.0-alpha-20260725 and so on), so a fixed number goes
+      stale every time CI publishes. Float to the newest one on the videolan-preview feed instead.
+
+      Pin an exact version here, or pass -p:LibVLCMacPackageVersion=..., for a reproducible build.
+    -->
+    <LibVLCMacPackageVersion Condition="'$(LibVLCMacPackageVersion)' == ''">4.0.0-alpha-*</LibVLCMacPackageVersion>
+  </PropertyGroup>
+
   <Import Project="$(MSBuildThisFileDirectory)Directory.Build.local.props"
           Condition="Exists('$(MSBuildThisFileDirectory)Directory.Build.local.props')" />
 </Project>

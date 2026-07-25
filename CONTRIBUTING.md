@@ -163,6 +163,19 @@ It is gitignored, and the root `Directory.Build.props` imports it when present:
 Keep it out of version control. A Release build packs `LibVLCSharp`, and with the mobile frameworks
 disabled the resulting package would quietly be missing its Android, iOS, macOS and tvOS assets.
 
+### LibVLC nightly packages
+
+The macOS samples float to the newest `VideoLAN.LibVLC.Mac` nightly on the `videolan-preview` feed
+rather than naming a version, because the nightlies are stamped with the day they were built. Pin an
+exact one when you need a reproducible build:
+
+```
+dotnet build -p:LibVLCMacPackageVersion=4.0.0-alpha-20260725
+```
+
+If you build the package yourself with `package-nuget-mac.sh`, add the output directory as a NuGet
+source so the floating version can resolve it before anything reaches the feed.
+
 ### <a name="rules"></a> Coding Rules
 
 To ensure consistency throughout the source code, keep these rules in mind as you are working:
