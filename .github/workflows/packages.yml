@@ -1,0 +1,75 @@
+name: Packages
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  # The .NET Framework and mobile TFMs need Windows and the mobile workloads respectively.
+  # Everything the desktop integrations need builds without either.
+  BUILD_OPTS: >-
+    -p:IncludeMobileTargetFrameworks=false
+    -p:IncludeNetFrameworkTargetFrameworks=false
+    -p:NoWarn=NU1510
+    -p:TreatWarningsAsErrors=false
+
+jobs:
+  pack:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Compute version
+        shell: bash
+        run: echo "PKG_VERSION=4.0.0-fork-$(date +%Y%m%d).${{ github.run_number }}" >> "$GITHUB_ENV"
+
+      - name: Build
+        shell: bash
+        run: |
+          # BUILD_OPTS is intentionally unquoted so bash splits it into separate -p: arguments
+          # shellcheck disable=SC2086
+          for p in src/LibVLCSharp/LibVLCSharp.csproj src/LibVLCSharp.Avalonia/LibVLCSharp.Avalonia.csproj; do
+            echo "::group::build $p"
+            dotnet build "$p" -c Release $BUILD_OPTS
+            echo "::endgroup::"
+          done
+
+      - name: Pack
+        shell: bash
+        run: |
+          # GitHub Packages rejects a package whose repository url points elsewhere, and
+          # Directory.Build.props points at the upstream GitLab, so override it here.
+          # shellcheck disable=SC2086
+          for p in src/LibVLCSharp/LibVLCSharp.csproj src/LibVLCSharp.Avalonia/LibVLCSharp.Avalonia.csproj; do
+            echo "::group::pack $p"
+            dotnet pack "$p" -c Release --no-build -o artifacts $BUILD_OPTS \
+              -p:PackageVersion="$PKG_VERSION" \
+              -p:RepositoryUrl="${{ github.server_url }}/${{ github.repository }}"
+            echo "::endgroup::"
+          done
+          ls -l artifacts
+
+      - name: Upload packages
+        uses: actions/upload-artifact@v7
+        with:
+          name: nuget-packages
+          path: artifacts/*.nupkg
+
+      - name: Publish to GitHub Packages
+        if: github.ref_name == 'master' || github.ref_name == 'apple-silicon-arm64'
+        shell: bash
+        run: |
+          dotnet nuget push "artifacts/*.nupkg" \
+            --source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" \
+            --api-key "${{ secrets.GITHUB_TOKEN }}" \
+            --skip-duplicate
