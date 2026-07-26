@@ -269,9 +269,16 @@ namespace LibVLCSharp.Avalonia
                     ShowInTaskbar = false,
                     ZIndex = int.MaxValue,
                     Opacity = 1.0,
-                    DataContext = DataContext
+                    DataContext = DataContext,
+
+                    // The overlay is a real top level window sitting over the video. Left to its
+                    // own devices it takes activation when shown or clicked, which on macOS means
+                    // the owner resigns key and the application looks like it has two competing
+                    // focuses. It is decoration, so it should never be the activated window.
+                    ShowActivated = false
                 };
                 SetWindowDecorationsNone(_floatingContent);
+                _floatingContent.Activated += FloatingContentOnActivated;
                 floatingContentChangedHandler = _floatingContent.Bind(ContentControl.ContentProperty, this.GetObservable(ContentProperty));
                 _floatingContent.PointerEntered += FloatingContentOnPointerEvent;
                 _floatingContent.PointerExited += FloatingContentOnPointerEvent;
@@ -296,9 +303,36 @@ namespace LibVLCSharp.Avalonia
 
         private void VisualRoot_UpdateOverlayPosition(object? sender, EventArgs e) => UpdateOverlayPosition();
 
+        /// <summary>
+        /// ShowActivated only covers the initial Show; clicking the overlay still activates it.
+        /// Hand that straight back to the owner so focus stays on the window hosting the app.
+        /// </summary>
+        private void FloatingContentOnActivated(object? sender, EventArgs e) => ActivateOwner();
+
         private void FloatingContentOnPointerEvent(object? sender, PointerEventArgs e)
         {
+            // The overlay covers the video, so this is also what a click "on the video" hits.
+            // Raising the owner here matters because activation and z-order are separate on
+            // macOS: without it the overlay alone comes forward and the window it belongs to
+            // stays buried behind whatever else was on top.
+            if (e.RoutedEvent == PointerPressedEvent)
+            {
+                ActivateOwner();
+            }
+
             RaiseEvent(e);
+        }
+
+        /// <summary>
+        /// Brings the window that owns the overlay to the front and gives it focus. Owned windows
+        /// are kept above their owner, so the overlay follows it up rather than being left behind.
+        /// </summary>
+        private void ActivateOwner()
+        {
+            if (TopLevel.GetTopLevel(this) is Window visualRoot)
+            {
+                visualRoot.Activate();
+            }
         }
 
         private void ShowNativeOverlay(bool show)
@@ -394,6 +428,7 @@ namespace LibVLCSharp.Avalonia
                 _floatingContent.PointerExited -= FloatingContentOnPointerEvent;
                 _floatingContent.PointerPressed -= FloatingContentOnPointerEvent;
                 _floatingContent.PointerReleased -= FloatingContentOnPointerEvent;
+                _floatingContent.Activated -= FloatingContentOnActivated;
                 _floatingContent.Close();
                 _floatingContent = null;
             }
