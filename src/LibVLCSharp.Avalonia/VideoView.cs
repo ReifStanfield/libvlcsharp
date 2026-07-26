@@ -9,6 +9,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Metadata;
 using Avalonia.Platform;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 
 namespace LibVLCSharp.Avalonia
@@ -279,6 +280,7 @@ namespace LibVLCSharp.Avalonia
 
                 visualRoot.LayoutUpdated += VisualRoot_UpdateOverlayPosition;
                 visualRoot.PositionChanged += VisualRoot_UpdateOverlayPosition;
+                visualRoot.Opened += VisualRoot_UpdateOverlayPosition;
             }
 
             ShowNativeOverlay(IsEffectivelyVisible);
@@ -305,7 +307,15 @@ namespace LibVLCSharp.Avalonia
                 return;
 
             if (show && this.IsAttachedToVisualTree())
+            {
                 _floatingContent.Show(visualRoot);
+
+                // The window manager may still move the owner after this point, and neither
+                // LayoutUpdated nor PositionChanged is raised for that initial placement, which
+                // would strand the overlay at the coordinates it was given here. Recompute once
+                // the placement has settled.
+                Dispatcher.UIThread.Post(UpdateOverlayPosition, DispatcherPriority.Loaded);
+            }
             else
                 _floatingContent.Hide();
         }
@@ -329,6 +339,7 @@ namespace LibVLCSharp.Avalonia
 
             visualRoot.LayoutUpdated -= VisualRoot_UpdateOverlayPosition;
             visualRoot.PositionChanged -= VisualRoot_UpdateOverlayPosition;
+            visualRoot.Opened -= VisualRoot_UpdateOverlayPosition;
         }
 
         /// <inheritdoc />
